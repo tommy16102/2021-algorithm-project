@@ -1,6 +1,6 @@
 #include <iostream>
 #include <random>
-#define NUM 10000
+#define NUM 1000
 using namespace std;
 
 
@@ -8,7 +8,7 @@ char atgc[4] = { 'A','T','G','C' };
 std::random_device rd;                          
 std::mt19937 randmt(rd());
 std::uniform_int_distribution<int> ref_dis(0, 3);
-std::uniform_int_distribution<int> seq_dis(0, NUM - 50);
+std::uniform_int_distribution<int> seq_dis(0, NUM - 30);
 
 void init_dna(){
     FILE* f = fopen("DNAsequence.txt", "w");    
@@ -42,14 +42,14 @@ void init_read(int l, int n){   //길이 l, 개수 n
 }
 
 int main() {
-    int l = 10, n = 40;
+    int l = 30, n = 100000;
     init_dna();
     init_read(l,n); //l과 n의 값 변경해서 사용
-    FILE *fp = fopen("ShortRead.txt","r");
-    char line[NUM];
-    int i = 1;
-    while(fgets(line, sizeof(line), fp) != NULL){
-        line[l] = '\0';
-        printf("%s  %d\n",line,i++);
-    }
+    // FILE *fp = fopen("ShortRead.txt","r");
+    // char line[NUM];
+    // int i = 1;
+    // while(fgets(line, sizeof(line), fp) != NULL){
+    //     line[l] = '\0';
+    //     printf("%s  %d\n",line,i++);
+    // }
 }

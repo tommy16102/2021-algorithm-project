@@ -34,7 +34,7 @@ public:
 
     void new_node(string st){
         if(find_idx(st) != -1){
-            cout<<st<<" is in graph\n";
+            // cout<<st<<" is in graph\n";
             return;
         }
         Node *new_node = new Node();
@@ -68,10 +68,11 @@ public:
 
     void update_start(){
         int tmp = 0;
-        int st = tmp;
+        int st = 0;
         for(int i=0;i<nodes.size();i++){
             if(nodes[i].incoming - nodes[i].outgoing < tmp){
-                st = nodes[i].id;
+                tmp = nodes[i].incoming - nodes[i].outgoing;
+                st = i;
             }
         }
         start = st;
@@ -83,7 +84,7 @@ int Debruijn::Node::iter = 0;
 int main(){
     Debruijn d;
 
-    int l = 10, n = 40;
+    int l = 30;
     
     FILE *fp = fopen("ShortRead.txt","r");
     char line[NUM];
@@ -95,9 +96,9 @@ int main(){
         d.update_graph(tmp, l);
     }
 
-    for(int i=0;i<d.nodes.size();i++){
-        cout<<d.nodes[i].data<<" , "<<i<<"\n";
-    }
-
+    // for(int i=0;i<d.nodes.size();i++){
+    //     cout<<d.nodes[i].data<<" , "<<i<<", in : "<<d.nodes[i].incoming<<", out : "<<d.nodes[i].outgoing<<"\n";
+    // }
+    d.update_start();
     cout<<"start Node data : "<<d.nodes[d.start].data;
 }
