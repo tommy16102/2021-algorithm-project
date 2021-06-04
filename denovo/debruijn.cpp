@@ -17,11 +17,13 @@ public:
         string data;
         int incoming;
         int outgoing;
+        bool marked;
 
         Node(){
             id = iter++;
             incoming = 0;
             outgoing = 0;
+            marked = false;
         }
         void set_data(string st){
             data = st;
@@ -30,6 +32,15 @@ public:
 
     Debruijn(){
         start = 0;
+    }
+
+    void dfs(){
+        FILE *f = fopen("result.txt", "w");
+        dfs(f, start);
+    }
+
+    void dfs(FILE *f,int x){
+        
     }
 
     void new_node(string st){
