@@ -40,7 +40,17 @@ public:
     }
 
     void dfs(FILE *f,int x){
-        
+        int size = graph[x].size();
+        if(size == 0) return;
+        nodes[x].marked = true;
+        for(int i=0;i<size;i++){
+            int p = graph[x].back();
+            if(nodes[p].marked == false){
+                graph[x].pop_back();
+                dfs(f,p);
+            }
+        }
+        fprintf(f,"%s\n",nodes[x].data.c_str());
     }
 
     void new_node(string st){
@@ -107,9 +117,11 @@ int main(){
         d.update_graph(tmp, l);
     }
 
-    // for(int i=0;i<d.nodes.size();i++){
-    //     cout<<d.nodes[i].data<<" , "<<i<<", in : "<<d.nodes[i].incoming<<", out : "<<d.nodes[i].outgoing<<"\n";
-    // }
+    for(int i=0;i<d.nodes.size();i++){
+        cout<<d.nodes[i].data<<" , "<<i<<", in : "<<d.nodes[i].incoming<<", out : "<<d.nodes[i].outgoing<<"\n";
+    }
     d.update_start();
     cout<<"start Node data : "<<d.nodes[d.start].data;
+
+    d.dfs();
 }
