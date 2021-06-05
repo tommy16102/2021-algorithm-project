@@ -4,7 +4,9 @@
 #include <map>
 #include <string>
 #include <random>
-#define NUM 10000
+#include <fstream>
+#include <algorithm>
+#define NUM 100000
 using namespace std;
 
 char atgc[4] = { 'A','T','G','C' };
@@ -15,174 +17,239 @@ uniform_int_distribution<int> ref_dis(0, 3);
 uniform_int_distribution<int> seq_dis(0, NUM - 50);
 
 void init_dna() {
-    FILE* f = fopen("DNAsequence.txt", "w");
-    for (int j = 0; j < NUM; j++) {
-        fprintf(f, "%c", atgc[ref_dis(randmt)]);
-    }
-    fclose(f);
+	FILE* f = fopen("DNAsequence.txt", "w");
+	for (int j = 0; j < NUM; j++) {
+		fprintf(f, "%c", atgc[ref_dis(randmt)]);
+	}
+	fclose(f);
 }
 
-void init_read(int l, int n) {   //±Ê¿Ã l, ∞≥ºˆ n
-    FILE* f_dna = fopen("DNAsequence.txt", "r");
-    char* reference = new char[NUM];
+void init_read(int l, int n) {   //Í∏∏Ïù¥ l, Í∞úÏàò n
+	FILE* f_dna = fopen("DNAsequence.txt", "r");
+	char* reference = new char[NUM];
 
-    for (int i = 0; i < NUM; i++) {                 //∑π∆€∑±Ω∫ ∆ƒ¿œ¿ª ¿–æÓø¿±‚
-        char tmp = fgetc(f_dna);
-        reference[i] = tmp;
-    }
-    fclose(f_dna);
+	for (int i = 0; i < NUM; i++) {                 //Î†àÌçºÎü∞Ïä§ ÌååÏùºÏùÑ ÏùΩÏñ¥Ïò§Í∏∞
+		char tmp = fgetc(f_dna);
+		reference[i] = tmp;
+	}
+	fclose(f_dna);
 
-    FILE* f_short = fopen("ShortRead.txt", "w");
-    int dir = 0;
-    char* short_read = new char[l];         //n∞≥¿« shortRead ª˝º∫
-    for (int i = 0; i < n; i++) {
-        dir = seq_dis(randmt);
-        for (int j = 0; j < l; j++) {
-            short_read[j] = reference[dir + j];
-            fprintf(f_short, "%c", short_read[j]);
-        }fprintf(f_short, "\n");
-    }
-    fclose(f_short);
+	FILE* f_short = fopen("ShortRead.txt", "w");
+	int dir = 0;
+	char* short_read = new char[l];         //nÍ∞úÏùò shortRead ÏÉùÏÑ±
+	for (int i = 0; i < n; i++) {
+		dir = seq_dis(randmt);
+		for (int j = 0; j < l; j++) {
+			short_read[j] = reference[dir + j];
+			fprintf(f_short, "%c", short_read[j]);
+		}fprintf(f_short, "\n");
+	}
+	fclose(f_short);
 }
 
 class Debruijn {
 public:
-    class Node;
-    vector<int> graph[NUM];
-    vector<Node> nodes;
-    map<string, int> node_map;
-    int start;
+	class Node;
+	vector<int> graph[NUM];
+	vector<Node> nodes;
+	map<string, int> node_map;
+	int start;
 
-    class Node {
-    public:
-        int id;
-        string data;
-        int incoming;
-        int outgoing;
-        bool marked;
+	class Node {
+	public:
+		int id;
+		string data;
+		int incoming;
+		int outgoing;
+		bool marked;
 
-        Node() {
-            id = num_of_item++;
-            incoming = 0;
-            outgoing = 0;
-            marked = false;
+		Node() {
+			id = num_of_item++;
+			incoming = 0;
+			outgoing = 0;
+			marked = false;
+		}
+		void set_data(string st) {
+			data = st;
+		}
+	};
+
+	Debruijn() {
+		start = 0;
+	}
+
+	void dfs() {
+		FILE* f = fopen("result.txt", "w");
+		node_map.clear();
+		dfs(f, start);
+	}
+
+	void dfs(FILE* f, int x) {
+		vector<int> stack;
+		stack.push_back(x);
+		nodes[x].marked = true;
+		while (!stack.empty()) {
+			int k = stack.back();
+			stack.pop_back();
+			size_t size = graph[k].size();
+			for (int i = 0; i < size; i++) {
+				int p = graph[k].back();
+				if (nodes[p].marked == false) {
+					nodes[p].marked = true;
+					stack.push_back(p);
+				}
+			}
+			fprintf(f, "%s\n", nodes[k].data.c_str());
+		}
+	}
+
+
+	int new_node(string st) {
+		// int idx = find_idx(st);
+		int idx;
+		auto iter = node_map.find(st);
+		if (iter != node_map.end()) {
+			idx = iter->second;
+		}
+		else {
+			idx = -1;
+		}
+
+		if (idx != -1) {
+			// cout<<st<<" is in graph\n";
+			return idx;
+		}
+		else {
+			Node* new_node = new Node();
+			new_node->set_data(st);
+			nodes.push_back(*new_node);
+			node_map.insert({ st,num_of_item - 1 });
+			return num_of_item - 1;
+		}
+	}
+
+	int find_idx(string st) {
+		for (int i = 0; i < nodes.size(); i++) {
+			if (nodes[i].data == st) return i;
+		}
+		return -1;
+	}
+
+	void update_graph(string st, int l) {
+		string sub1 = st.substr(0, l - 1);
+		string sub2 = st.substr(1, l - 1);
+		int idx1 = new_node(sub1);
+		int idx2 = new_node(sub2);
+		nodes[idx1].outgoing++;
+		nodes[idx2].incoming++;
+
+		graph[idx1].push_back(idx2);
+	}
+
+	void update_start() {
+		int tmp = 0;
+		int st = 0;
+		for (int i = 0; i < nodes.size(); i++) {
+			if (nodes[i].incoming - nodes[i].outgoing < tmp) {
+				tmp = nodes[i].incoming - nodes[i].outgoing;
+				st = i;
+			}
+		}
+		start = st;
+	}
+
+	int get_distance(string &a, string &b) {
+		int alen = a.length();
+		int blen = b.length();
+
+		vector<vector<int> > distance; 
+		vector<int> v(blen+1,0);
+
+		distance.push_back(v);//distance[0]
+		for (int i = 1;i <= alen;i++) {
+			distance.push_back(v);
+			distance[i][0] = i;
+		}
+		//distance[0~alen][0~blen]
+		for (int j = 1;j <= blen;j++) {
+			distance[0][j] = j;
+		}
+		for (int j = 1;j <= blen;j++) {
+			for (int i = 1;i <= alen;i++) {
+				if (a[i - 1] == b[j - 1]) distance[i][j] = distance[i - 1][j - 1];
+				else distance[i][j] = min(distance[i - 1][j - 1] + 1, min(distance[i][j - 1] + 1, distance[i - 1][j] + 1));
+			}
+		}
+		int num = distance[alen][blen];
+		return num;
+	}
+
+	void get_accuracy() {//edit distance Ïù¥Ïö©
+
+		cout << "Î≥µÏõêÎêú DNAÏôÄ ÏõêÎ≥∏ DNAÍ∞ÑÏùò ÏùºÏπòÏú®ÏùÑ Íµ¨Ìï©ÎãàÎã§...\n";
+		ifstream fin("result.txt");
+		if (!fin) cout << "Ïò§Î•ò";
+
+		string restored = "", s; //restoredÎäî Î≥µÏõêÎêú ÏãúÌÄÄÏä§
+		int count = 0;
+		while (getline(fin, s)) {
+			if (count == 0) {
+				restored = s;
+				count++;
+			}
+			else restored = restored + s[s.length() - 1];
+		}
+		fin.close();
+
+		string origin = ""; //ÏõêÎ≥∏ ÏãúÌÄÄÏä§
+		ifstream fin2("DNAsequence.txt");
+		if (!fin2) cout << "Ïò§Î•ò" << endl;
+		int c;
+		while ((c = fin2.get() != EOF)) {
+			origin += string(1, char(c));
+		}
+		fin2.close();
+		double num;
+		cout << origin.length() << "   " << restored.length() << endl;
+		if (origin.find(restored) >= 0) {
+			num = restored.length() / (double)NUM;
+		}
+		else {
+			num = get_distance(origin, restored);
+			num = (NUM - num) / (double)NUM;
         }
-        void set_data(string st) {
-            data = st;
-        }
-    };
-
-    Debruijn() {
-        start = 0;
-    }
-
-    void dfs() {
-        FILE* f = fopen("result.txt", "w");
-        node_map.clear();
-        dfs(f, start);
-    }
-
-    void dfs(FILE* f, int x) {
-        vector<int> stack;
-        stack.push_back(x);
-        nodes[x].marked = true;
-        while (!stack.empty()) {
-            int k = stack.back();
-            stack.pop_back();
-            size_t size = graph[k].size();
-            for (int i = 0; i < size; i++) {
-                int p = graph[k].back();
-                if (nodes[p].marked == false) {
-                    nodes[p].marked = true;
-                    stack.push_back(p);
-                }
-            }
-            fprintf(f, "%s\n", nodes[k].data.c_str());
-        }
-    }
-
-
-    int new_node(string st) {
-        // int idx = find_idx(st);
-        int idx;
-        auto iter = node_map.find(st);
-        if (iter != node_map.end()) {
-            idx = iter->second;
-        }
-        else {
-            idx = -1;
-        }
-
-        if (idx != -1) {
-            // cout<<st<<" is in graph\n";
-            return idx;
-        }
-        else {
-            Node* new_node = new Node();
-            new_node->set_data(st);
-            nodes.push_back(*new_node);
-            node_map.insert({ st,num_of_item - 1 });
-            return num_of_item - 1;
-        }
-    }
-
-    int find_idx(string st) {
-        for (int i = 0; i < nodes.size(); i++) {
-            if (nodes[i].data == st) return i;
-        }
-        return -1;
-    }
-
-    void update_graph(string st, int l) {
-        string sub1 = st.substr(0, l - 1);
-        string sub2 = st.substr(1, l - 1);
-        int idx1 = new_node(sub1);
-        int idx2 = new_node(sub2);
-        nodes[idx1].outgoing++;
-        nodes[idx2].incoming++;
-
-        graph[idx1].push_back(idx2);
-    }
-
-    void update_start() {
-        int tmp = 0;
-        int st = 0;
-        for (int i = 0; i < nodes.size(); i++) {
-            if (nodes[i].incoming - nodes[i].outgoing < tmp) {
-                tmp = nodes[i].incoming - nodes[i].outgoing;
-                st = i;
-            }
-        }
-        start = st;
-    }
+			cout << "Î≥µÏõêÎêú DNAÏôÄ ÏõêÎ≥∏ DNAÍ∞ÑÏùò ÏùºÏπòÏú®ÏùÄ " << num*100 << " % ÏûÖÎãàÎã§\n";
+		
+	}
 };
 
 int main() {
-    int l = 50, n = 1000000;
-    init_dna();
-    init_read(l, n); //l∞˙ n¿« ∞™ ∫Ø∞Ê«ÿº≠ ªÁøÎ
+	int l = 50, n = 1000000;
+	init_dna();
+	init_read(l, n); //lÍ≥º nÏùò Í∞í Î≥ÄÍ≤ΩÌï¥ÏÑú ÏÇ¨Ïö©
 
-    cout << "∏ÆµÂ ª˝º∫ øœ∑·\n";
+	cout << "Î¶¨Îìú ÏÉùÏÑ± ÏôÑÎ£å\n";
 
-    Debruijn* d = new Debruijn;
+	Debruijn* d = new Debruijn;
 
-    cout << "±◊∑°«¡ ±◊∏Æ¥¬¡ﬂ...";
-    FILE* fp = fopen("ShortRead.txt", "r");
-    char line[NUM];
-    int u, i = 0;
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        line[l] = '\0';
-        string tmp = line;
-        d->update_graph(tmp, l);
-    }
-    cout << "±◊∑°«¡ ±◊∏Æ±‚ øœ∑·\n";
-    cout << "æ˜µ•¿Ã∆Æ Ω√¿€" << endl;
-    // for(int i=0;i<d.nodes.size();i++){
-    //     cout<<d.nodes[i].data<<" , "<<i<<", in : "<<d.nodes[i].incoming<<", out : "<<d.nodes[i].outgoing<<"\n";
-    // }
-    d->update_start();
-    cout << "æ˜µ•¿Ã∆Æ ≥°" << endl;
-    cout << "start Node data : " << d->nodes[d->start].data;
+	cout << "Í∑∏ÎûòÌîÑ Í∑∏Î¶¨ÎäîÏ§ë...";
+	FILE* fp = fopen("ShortRead.txt", "r");
+	char line[NUM];
+	int u, i = 0;
+	while (fgets(line, sizeof(line), fp) != NULL) {
+		line[l] = '\0';
+		string tmp = line;
+		d->update_graph(tmp, l);
+	}
+	cout << "Í∑∏ÎûòÌîÑ Í∑∏Î¶¨Í∏∞ ÏôÑÎ£å\n";
+	cout << "ÏóÖÎç∞Ïù¥Ìä∏ ÏãúÏûë" << endl;
+	// for(int i=0;i<d.nodes.size();i++){
+	//     cout<<d.nodes[i].data<<" , "<<i<<", in : "<<d.nodes[i].incoming<<", out : "<<d.nodes[i].outgoing<<"\n";
+	// }
+	d->update_start();
+	cout << "ÏóÖÎç∞Ïù¥Ìä∏ ÎÅù" << endl;
+	cout << "start Node data : " << d->nodes[d->start].data << '\n\n';
 
-    d->dfs();
+	d->dfs();
+	d->get_accuracy();//ÏùºÏπòÏú® Ï∏°Ï†ï
 }
