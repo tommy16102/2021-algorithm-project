@@ -247,7 +247,7 @@ int main() {
 	// }
 	d->update_start();
 	cout << "업데이트 끝" << endl;
-	cout << "start Node data : " << d->nodes[d->start].data << '\n\n';
+	cout << "start Node data : " << d->nodes[d->start].data << "\n\n";
 
 	d->dfs();
 	d->get_accuracy();//일치율 측정
