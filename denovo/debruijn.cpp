@@ -210,7 +210,6 @@ public:
 		}
 		fin2.close();
 		double num;
-		cout << origin.length() << "   " << restored.length() << endl;
 		if (origin.find(restored) >= 0) {
 			num = restored.length() / (double)NUM;
 		}
